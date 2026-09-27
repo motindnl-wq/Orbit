@@ -25,6 +25,62 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ios-ipa]
+    paths:
+      - '.github/workflows/ios-unsigned.yml'
+      - 'ios/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'App.tsx'
+      - 'Component/**'
+      - 'Utils/**'
+      - 'Images/**'
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply iOS source fixes
+        run: git apply ios-source.patch
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install JavaScript dependencies
+        # Upstream react-native-screens runs a development-only git submodule
+        # postinstall script that fails in the published npm package.
+        run: npm ci --ignore-scripts
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          NO_FLIPPER=1 pod install --repo-update
+      - name: Build iPhone app without signing
+        run: |
+          xcodebuild -workspace ios/Orbit.xcworkspace \
+            -scheme Orbit -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/OrbitBuild" \
+            CODE_SIGNING_ALLOWED=NO \
+            PRODUCT_BUNDLE_IDENTIFIER=dev.orbitmusic.unsigned \
+            build
+      - name: Package IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$RUNNER_TEMP/OrbitBuild/Build/Products/Release-iphoneos/Orbit.app" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -qry "$GITHUB_WORKSPACE/Orbit-unsigned.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Orbit-unsigned-ipa
+          path: Orbit-unsigned.ipa
+          if-no-files-found: error
           cache: npm
       - name: Install JavaScript dependencies
         run: npm ci
