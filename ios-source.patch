@@ -138,3 +138,15 @@ index f3e7acf..bc21362 100644
  	<key>NSAppTransportSecurity</key>
  	<dict>
  	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
+diff --git a/ios/Podfile b/ios/Podfile
+index f42ff0d..2846a8f 100644
+--- a/ios/Podfile
++++ b/ios/Podfile
+@@ -6,6 +6,7 @@ require Pod::Executable.execute_command('node', ['-p',
+   )', __dir__]).strip
+ 
+ platform :ios, min_ios_version_supported
++use_modular_headers!
+ prepare_react_native_project!
+ 
+ # If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
