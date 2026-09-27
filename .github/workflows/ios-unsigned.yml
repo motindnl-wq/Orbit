@@ -13,6 +13,7 @@ on:
       - 'Component/**'
       - 'Utils/**'
       - 'Images/**'
+      - 'ios-source.patch'
 
 jobs:
   ipa:
