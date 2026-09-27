@@ -1,0 +1,140 @@
+diff --git a/.gitignore b/.gitignore
+index 2c2df48..e4bdd84 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -69,6 +69,5 @@ yarn-error.log
+ .env
+ 
+ # Embedded repositories
+-Utils/secrets.js
+ Utils/SpotifyService.js
+ Utils/SpotifyService copy.js
+diff --git a/Component/Album/PlayButton.jsx b/Component/Album/PlayButton.jsx
+new file mode 100644
+index 0000000..0df76da
+--- /dev/null
++++ b/Component/Album/PlayButton.jsx
+@@ -0,0 +1,14 @@
++import React from 'react';
++import { TouchableOpacity } from 'react-native';
++import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
++
++export const PlayButton = ({ onPress, isPlaying }) => (
++  <TouchableOpacity
++    accessibilityRole="button"
++    accessibilityLabel={isPlaying ? 'Pause album' : 'Play album'}
++    onPress={onPress}
++    style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}
++  >
++    <MaterialCommunityIcons name={isPlaying ? 'pause' : 'play'} size={30} color="#111" />
++  </TouchableOpacity>
++);
+diff --git a/Component/Home/DisplayTopSection.jsx b/Component/Home/DisplayTopSection.jsx
+index c40ec32..ecfc114 100644
+--- a/Component/Home/DisplayTopSection.jsx
++++ b/Component/Home/DisplayTopSection.jsx
+@@ -23,7 +23,7 @@ export const DisplayTopSection = memo(({ playlist }) => {
+       >
+         <EachSmallCardHome
+           name={'Liked Songs'}
+-          image={require('../../Images/LikedSong.png')}
++          image={require('../../Images/likedMusic.webp')}
+           subtitle={'liked by you'}
+           navigate={'LikedSongs'}
+         />
+diff --git a/Component/MusicPlayer/OptimizedComponents/index.js b/Component/MusicPlayer/OptimizedComponents/index.js
+index b309aae..38db911 100644
+--- a/Component/MusicPlayer/OptimizedComponents/index.js
++++ b/Component/MusicPlayer/OptimizedComponents/index.js
+@@ -8,6 +8,6 @@
+  * - Have proper debouncing for actions
+  */
+ 
+-export { default as OptimizedPlaybackControls } from './OptimizedPlaybackControls';
+-export { default as OptimizedQueueItem } from './OptimizedQueueItem';
+-export { default as OptimizedQueueList } from './OptimizedQueueList';
++export { default as OptimizedPlaybackControls } from '../OptimizedPlaybackControls';
++export { default as OptimizedQueueItem } from '../OptimizedQueueItem';
++export { default as OptimizedQueueList } from '../OptimizedQueueList';
+diff --git a/IOS_BUILD_NOTES.md b/IOS_BUILD_NOTES.md
+new file mode 100644
+index 0000000..37410a0
+--- /dev/null
++++ b/IOS_BUILD_NOTES.md
+@@ -0,0 +1,17 @@
++# iOS build preparation
++
++This branch is a first attempt to build an unsigned iOS IPA from the public Orbit sources. It has **not** passed an Xcode build or a device test.
++
++## Changes
++
++- Replaced missing image imports with images already in the repository.
++- Restored a missing album play button and repaired three broken component export paths.
++- Added empty optional API configuration so Metro can resolve imports without embedding private credentials. Spotify playlist import, PodcastIndex API, and Last.fm integration need their own authorized backend/credentials to function. Never put a Spotify client secret in a mobile bundle.
++- Added iOS background audio and Files app document sharing declarations.
++- Added `.github/workflows/ios-unsigned.yml` to compile on a macOS GitHub runner and upload an unsigned IPA artifact. An IPA from this workflow needs signing with an appropriate certificate before installation.
++
++## Status
++
++`npm ci --ignore-scripts` and `npx react-native bundle --platform ios --dev false --entry-file index.js` passed on Linux. The native iOS build and runtime have not been checked; remaining Android-specific features may need porting or disabling. The repository's iOS app icon set has no icon image files. Optional integrations without API credentials will not work.
++
++The workflow runs on pushes to branch `ios-ipa`, or by manual dispatch in GitHub Actions. A failed job should be diagnosed from its macOS build log before promising an installable app.
+diff --git a/Utils/ImageManager.js b/Utils/ImageManager.js
+index b7664c6..632110e 100644
+--- a/Utils/ImageManager.js
++++ b/Utils/ImageManager.js
+@@ -23,14 +23,14 @@ export const OPTIMIZED_IMAGES = {
+   APP_LOGO: require('../Images/Logo.jpg'),
+ 
+   // Category/Genre images
+-  LOFI_GENRE: require('../Images/lofi.jpg'),
+-  POP_GENRE: require('../Images/pop.png'),
+-  TRENDING_IMAGE: require('../Images/trending.png'),
++  LOFI_GENRE: require('../Images/Music.jpeg'),
++  POP_GENRE: require('../Images/Music.jpeg'),
++  TRENDING_IMAGE: require('../Images/Orbit.jpg'),
+ 
+   // Feature images
+   LIKED_PLAYLIST: require('../Images/LikedPlaylist.png'),
+-  LIKED_SONG: require('../Images/LikedSong.png'),
+-  MOST_SEARCHED: require('../Images/MostSearched.png'),
++  LIKED_SONG: require('../Images/likedMusic.webp'),
++  MOST_SEARCHED: require('../Images/default.jpg'),
+ };
+ 
+ // Default fallback URLs for remote images
+diff --git a/Utils/secrets.js b/Utils/secrets.js
+new file mode 100644
+index 0000000..7fd9fbd
+--- /dev/null
++++ b/Utils/secrets.js
+@@ -0,0 +1,10 @@
++// Optional API integrations. This public build has no private API credentials.
++// Never commit service client secrets to a mobile application: its bundle is readable.
++export const LASTFM_API_KEY = '';
++export const LASTFM_API_SECRET = '';
++export const PODCAST_INDEX_API_KEY = '';
++export const PODCAST_INDEX_API_SECRET = '';
++export const SPOTIFY_CLIENT_ID = '';
++export const SPOTIFY_CLIENT_SECRET = '';
++export const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
++export const SPOTIFY_API_BASE_URL = 'https://api.spotify.com/v1';
+diff --git a/ios/Orbit/Info.plist b/ios/Orbit/Info.plist
+index f3e7acf..bc21362 100644
+--- a/ios/Orbit/Info.plist
++++ b/ios/Orbit/Info.plist
+@@ -24,6 +24,14 @@
+ 	<string>$(CURRENT_PROJECT_VERSION)</string>
+ 	<key>LSRequiresIPhoneOS</key>
+ 	<true/>
++	<key>UIBackgroundModes</key>
++	<array>
++		<string>audio</string>
++	</array>
++	<key>UIFileSharingEnabled</key>
++	<true/>
++	<key>LSSupportsOpeningDocumentsInPlace</key>
++	<true/>
+ 	<key>NSAppTransportSecurity</key>
+ 	<dict>
+ 	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
